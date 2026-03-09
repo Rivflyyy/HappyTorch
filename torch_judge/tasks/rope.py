@@ -11,7 +11,7 @@ TASK = {
             "code": """
 import torch
 x = torch.randn(2, 4, 8, 16)  # (batch, heads, seq, head_dim)
-pos = torch.arange(4).unsqueeze(0).expand(2, -1)  # (batch, seq)
+pos = torch.arange(8).unsqueeze(0).expand(2, -1)  # (batch, seq)
 out = {fn}(x, pos)
 assert out.shape == x.shape, f'Shape mismatch: {out.shape}'
 """,
