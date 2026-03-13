@@ -15,6 +15,7 @@
 ![GPU](https://img.shields.io/badge/GPU-无需-brightgreen?style=flat-square)
 
 > **动态**
+> - 2026-03-13：感谢 [wavetao2010](https://github.com/wavetao2010) 贡献 Docker 镜像支持，支持 Web/Jupyter 双模式及预构建镜像。
 > - 2026-03-12：Web 界面侧边栏新增题目分类展示（基础层、注意力机制、RLHF 等），支持折叠/展开，方便按专题刷题。
 > - 2026-03-10：感谢 [SongHuang1](https://github.com/SongHuang1) 贡献 MLP XOR 训练题目（纯 NumPy 手写前向+反向传播）。修复 Web 界面问题：class 类题目（LoRA、SwiGLU 等）现已正常工作，执行环境添加 `nn`/`F`/`numpy`/`math` 支持，修复 Windows 上 OpenMP 冲突导致的崩溃，修复 MHA 题解查找，前端增加 60 秒请求超时保护。
 > - 2026-03-09：感谢 [chaoyitud](https://github.com/chaoyitud) 新增 ML 与 RLHF 练习题目，感谢 [fiberproduct](https://github.com/fiberproduct) 修复 `torch_judge/tasks/rope.py`。欢迎大家贡献更多题目！
@@ -293,6 +294,7 @@ HappyTorch 基于 <a href="https://github.com/duoan/TorchCode">TorchCode</a>（1
 - [fiberproduct](https://github.com/fiberproduct) — RoPE 题目修复
 - [Rivflyyy](https://github.com/Rivflyyy) — [happytorch-plugin](https://github.com/Rivflyyy/happytorch-plugin) 插件
 - [SongHuang1](https://github.com/SongHuang1) — MLP XOR 训练题目
+- [wavetao2010](https://github.com/wavetao2010) — Docker 镜像支持
 
 ## 许可证
 
