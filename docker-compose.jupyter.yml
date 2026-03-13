@@ -1,0 +1,9 @@
+services:
+  happytorch:
+    ports:
+      - "8888:8888"
+    environment:
+      - MODE=jupyter
+      - PORT=8888
+    volumes:
+      - ./notebooks:/app/notebooks

@@ -71,9 +71,18 @@ python start_jupyter.py
 ### Docker
 
 ```bash
-make run    # docker compose up
-make stop   # docker compose down
+# Web Mode (default, recommended)
+make run                # build & start → http://localhost:8000
+make stop               # stop container
+
+# Jupyter Mode
+make jupyter            # build & start → http://localhost:8888
+
+# Or pull the pre-built image directly
+docker compose up -d    # pulls ghcr.io/chan/happytorch:latest
 ```
+
+Progress data (`data/progress.json`) is persisted via Docker volume.
 
 ---
 

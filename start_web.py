@@ -48,13 +48,16 @@ if __name__ == "__main__":
     import uvicorn
     from web.app import app
     
-    print("\n  🌐 Open http://localhost:8000 in your browser")
-    print("  ⏹️  Press Ctrl+C to stop\n")
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8000"))
+
+    print(f"\n  Open http://localhost:{port} in your browser")
+    print("  Press Ctrl+C to stop\n")
     print("=" * 50 + "\n")
-    
+
     uvicorn.run(
         app,
-        host="127.0.0.1",
-        port=8000,
+        host=host,
+        port=port,
         log_level="info"
     )

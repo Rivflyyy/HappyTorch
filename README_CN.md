@@ -71,9 +71,18 @@ python start_jupyter.py
 ### Docker 启动
 
 ```bash
-make run    # docker compose up
-make stop   # docker compose down
+# Web 模式（默认，推荐）
+make run                # 构建并启动 → http://localhost:8000
+make stop               # 停止容器
+
+# Jupyter 模式
+make jupyter            # 构建并启动 → http://localhost:8888
+
+# 或直接拉取预构建镜像
+docker compose up -d    # 拉取 ghcr.io/chan/happytorch:latest
 ```
+
+做题进度（`data/progress.json`）通过 Docker volume 持久化保存。
 
 ---
 

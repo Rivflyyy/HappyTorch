@@ -1,0 +1,9 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+.ipynb_checkpoints
+notebooks/
+data/
+.claude
+.codebuddy
