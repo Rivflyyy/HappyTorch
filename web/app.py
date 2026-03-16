@@ -120,7 +120,7 @@ def _find_notebook_path(task_id: str, directory: str, suffix: str = "") -> Path 
             return exact
 
     # Try with number prefix (e.g., 01_relu.ipynb or 01_relu_solution.ipynb)
-    for f in base_dir.glob(f"*{suffix}.ipynb"):
+    for f in sorted(base_dir.glob(f"*{suffix}.ipynb")):
         name = f.stem  # "01_relu" or "01_relu_solution"
         # Remove suffix to get base name
         base = name.removesuffix(suffix) if suffix else name
