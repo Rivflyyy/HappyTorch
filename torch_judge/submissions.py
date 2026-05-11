@@ -15,7 +15,7 @@ MAX_PER_TASK = 20
 def _load() -> dict[str, list[dict[str, Any]]]:
     path = Path(SUBMISSIONS_PATH)
     if path.exists():
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -23,7 +23,7 @@ def _load() -> dict[str, list[dict[str, Any]]]:
 def _save(data: dict[str, list[dict[str, Any]]]) -> None:
     path = Path(SUBMISSIONS_PATH)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
