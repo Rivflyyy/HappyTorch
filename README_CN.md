@@ -11,7 +11,7 @@
 [![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-![Problems](https://img.shields.io/badge/题目数-36-orange?style=flat-square)
+![Problems](https://img.shields.io/badge/题目数-45-orange?style=flat-square)
 ![GPU](https://img.shields.io/badge/GPU-无需-brightgreen?style=flat-square)
 
 > **动态**
@@ -33,11 +33,11 @@
 - 面试被要求从零实现 `softmax` 或 `MultiHeadAttention`，脑子一片空白
 - 想深入理解 Transformer、LoRA、Diffusion、RLHF，但缺乏系统性的动手练习
 
-**HappyTorch** 提供一个友好的实践环境，包含 **36 道精选题目**，从基础激活函数到完整 Transformer 组件和 RLHF 算法，帮助你循序渐进地提升。
+**HappyTorch** 提供一个友好的实践环境，包含 **45 道精选题目**，从基础激活函数到完整 Transformer 组件和 RLHF 算法，帮助你循序渐进地提升。
 
 | 特性 | 说明 |
 |------|------|
-| **36 道精选题目** | 从基础到进阶，覆盖主流深度学习技术栈 |
+| **45 道精选题目** | 从基础到进阶，覆盖主流深度学习技术栈 |
 | **自动评测** | 即时反馈，清晰展示每个测试用例的通过/失败状态 |
 | **双界面** | LeetCode 风格的 Web 界面（Monaco 编辑器）或 Jupyter Notebook |
 | **智能提示** | 卡住时给你思路，而非直接给答案 |
@@ -109,7 +109,7 @@ python start_web.py
 
 ---
 
-## 题目列表（共 36 题）
+## 题目列表（共 45 题）
 
 ### 基础层
 
@@ -169,11 +169,14 @@ python start_web.py
 | 22 | RoPE | `apply_rotary_pos_emb(x, pos)` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | 旋转位置编码，二维旋转 |
 | 23 | KV Cache | `KVCache` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | 增量缓存，文本生成加速 |
 
-### 扩散模型训练 *(V2)*
+### 扩散模型训练 *(V2 / V4)*
 
 | # | 题目 | 函数 / 类 | 难度 | 核心概念 |
 |:-:|------|----------|:----:|----------|
 | 24 | Sigmoid 噪声调度 | `sigmoid_schedule(t, ...)` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | S 曲线噪声调度 |
+| 37 | Flow Matching 损失 | `flow_matching_loss(model, x0, x1, t)` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | 整流流，直线路径，速度场回归（SD3 / Flux） |
+| 38 | DMD2 分布匹配损失 | `dmd_loss(x_gen, pred_real, pred_fake)` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | 反向 KL = 分数差，梯度替代损失，一步蒸馏 |
+| 39 | Classifier-Free Guidance | `classifier_free_guidance(eps_u, eps_c, w)` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | 引导外推，逐样本标准差 rescale |
 
 ### ML 基础与解码策略 *(V3 — 社区贡献)*
 
@@ -188,6 +191,19 @@ python start_web.py
 | 30 | 温度采样 | `temperature_sample` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | 温度缩放 softmax 采样 |
 | 31 | Top-k 采样 | `top_k_sample` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | 截断概率分布 |
 | 32 | Top-p 采样 | `top_p_sample` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | 核采样（Nucleus Sampling） |
+
+### NumPy 手写神经网络 *(V4)*
+
+不用 autograd、不用 torch —— 自己写前向、自己缓存中间量、自己推每一个梯度。
+
+| # | 题目 | 函数 / 类 | 难度 | 核心概念 |
+|:-:|------|----------|:----:|----------|
+| 40 | MLP 前向传播 | `mlp_forward(X, params)` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | 仿射 + ReLU 堆叠，最后一层保持线性，形状约定 |
+| 41 | Softmax 交叉熵 + 梯度 | `softmax_cross_entropy(logits, labels)` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | 数值稳定 softmax，融合梯度 `(p - onehot)/N` |
+| 42 | MLP 反向传播 | `mlp_loss_and_grads(X, labels, params)` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | L 层完整反传，前向缓存，数值梯度校验 |
+| 43 | Conv2D 前向 | `conv2d_forward(x, w, b, stride, padding)` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | 互相关（不翻转核），权重共享，im2col 思路 |
+| 44 | Conv2D 反向 | `conv2d_backward(dout, x, w, ...)` | ![Hard](https://img.shields.io/badge/-困难-F44336?style=flat-square) | dx / dw / db，重叠窗口梯度累加 |
+| 45 | MaxPool2D 前向 + 反向 | `maxpool2d(x, kernel_size, stride)` | ![Medium](https://img.shields.io/badge/-中等-FF9800?style=flat-square) | argmax 路由，返回 backward 闭包 |
 
 ### RLHF *(V3 — 社区贡献)*
 

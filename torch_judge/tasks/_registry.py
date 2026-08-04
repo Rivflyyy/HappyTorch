@@ -19,6 +19,7 @@ CATEGORY_ORDER = [
     "LLM 推理组件",
     "扩散模型训练",
     "ML 基础与解码策略",
+    "NumPy 手写神经网络",
     "RLHF",
 ]
 _CATEGORY_INDEX = {c: i for i, c in enumerate(CATEGORY_ORDER)}

@@ -11,7 +11,7 @@
 [![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-![Problems](https://img.shields.io/badge/problems-36-orange?style=flat-square)
+![Problems](https://img.shields.io/badge/problems-45-orange?style=flat-square)
 ![GPU](https://img.shields.io/badge/GPU-not%20required-brightgreen?style=flat-square)
 
 > **News**
@@ -33,11 +33,11 @@ If you're learning deep learning or preparing for ML interviews, you might have 
 - You're asked to implement `softmax` or `MultiHeadAttention` in an interview, and your mind goes blank
 - You want to deeply understand Transformer, LoRA, Diffusion, RLHF, but lack systematic practice
 
-**HappyTorch** provides a friendly hands-on practice environment with **36 curated problems**, from basic activation functions to complete Transformer components and RLHF algorithms.
+**HappyTorch** provides a friendly hands-on practice environment with **45 curated problems**, from basic activation functions to complete Transformer components and RLHF algorithms.
 
 | Feature | Description |
 |---------|-------------|
-| **36 curated problems** | From basics to advanced, covering mainstream deep learning topics |
+| **45 curated problems** | From basics to advanced, covering mainstream deep learning topics |
 | **Auto-grading** | Instant feedback showing what you got right and where to improve |
 | **Two interfaces** | LeetCode-like Web UI (Monaco Editor) or Jupyter notebooks |
 | **Helpful hints** | Get nudges when stuck, not full spoilers |
@@ -109,7 +109,7 @@ python start_web.py
 
 ---
 
-## Problem Set (36 Problems)
+## Problem Set (45 Problems)
 
 ### Fundamentals
 
@@ -169,11 +169,14 @@ python start_web.py
 | 22 | RoPE | `apply_rotary_pos_emb(x, pos)` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | Rotary embedding, 2D rotation |
 | 23 | KV Cache | `KVCache` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | Incremental caching for generation |
 
-### Diffusion Training *(V2)*
+### Diffusion Training *(V2 / V4)*
 
 | # | Problem | Function / Class | Difficulty | Key Concepts |
 |:-:|---------|-----------------|:----------:|--------------|
 | 24 | Sigmoid Schedule | `sigmoid_schedule(t, ...)` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | S-curve noise schedule |
+| 37 | Flow Matching Loss | `flow_matching_loss(model, x0, x1, t)` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Rectified flow, straight path, velocity regression (SD3 / Flux) |
+| 38 | DMD2 Distribution Matching | `dmd_loss(x_gen, pred_real, pred_fake)` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | Reverse-KL as a score difference, gradient surrogate, one-step distillation |
+| 39 | Classifier-Free Guidance | `classifier_free_guidance(eps_u, eps_c, w)` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Guided extrapolation, per-sample std rescale |
 
 ### ML Fundamentals & Decoding *(V3 — Community)*
 
@@ -188,6 +191,19 @@ python start_web.py
 | 30 | Temperature Sampling | `temperature_sample` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Temperature-scaled softmax sampling |
 | 31 | Top-k Sampling | `top_k_sample` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Truncated probability distribution |
 | 32 | Top-p Sampling | `top_p_sample` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | Nucleus sampling |
+
+### Neural Nets from Scratch in NumPy *(V4)*
+
+No autograd, no `torch` — build the forward pass, cache what you need, then derive every gradient by hand.
+
+| # | Problem | Function / Class | Difficulty | Key Concepts |
+|:-:|---------|-----------------|:----------:|--------------|
+| 40 | MLP Forward | `mlp_forward(X, params)` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Affine + ReLU chain, linear logits, shape discipline |
+| 41 | Softmax Cross-Entropy | `softmax_cross_entropy(logits, labels)` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Stable softmax, the fused `(p - onehot)/N` gradient |
+| 42 | MLP Backpropagation | `mlp_loss_and_grads(X, labels, params)` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | Full L-layer backprop, caching, gradient checking |
+| 43 | Conv2D Forward | `conv2d_forward(x, w, b, stride, padding)` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | Cross-correlation, weight sharing, im2col thinking |
+| 44 | Conv2D Backward | `conv2d_backward(dout, x, w, ...)` | ![Hard](https://img.shields.io/badge/-Hard-F44336?style=flat-square) | dx / dw / db, overlapping-window accumulation |
+| 45 | MaxPool2D Fwd + Bwd | `maxpool2d(x, kernel_size, stride)` | ![Medium](https://img.shields.io/badge/-Medium-FF9800?style=flat-square) | Argmax routing, returning a backward closure |
 
 ### RLHF *(V3 — Community)*
 
