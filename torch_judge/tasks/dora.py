@@ -63,6 +63,31 @@ assert torch.allclose(out, base_out, atol=1e-4), 'DoRA output should match decom
 """,
         },
         {
+            "name": "Numerical match with non-zero low-rank update",
+            "code": """
+import torch
+import torch.nn.functional as F
+torch.manual_seed(23)
+# Non-square weights, non-default scaling and independently learned magnitudes
+# distinguish DoRA from a base-only layer or a direction with the wrong norm.
+for in_features, out_features, rank, alpha in ((7, 11, 2, 3.5), (9, 5, 3, 0.75)):
+    dora = {fn}(in_features=in_features, out_features=out_features, rank=rank, alpha=alpha)
+    with torch.no_grad():
+        dora.W.copy_(torch.randn_like(dora.W) * 0.3)
+        dora.A.copy_(torch.randn_like(dora.A) * 0.4)
+        dora.B.copy_(torch.randn_like(dora.B) * 0.5)
+        dora.m.copy_(torch.linspace(0.6, 1.8, out_features))
+    direction = dora.W + (alpha / rank) * (dora.B @ dora.A)
+    expected_weight = dora.m[:, None] * F.normalize(direction, p=2, dim=1)
+    for shape in ((4, in_features), (2, 3, in_features)):
+        x = torch.randn(*shape)
+        expected = F.linear(x, expected_weight)
+        out = dora(x)
+        assert out.shape == expected.shape, 'DoRA output shape mismatch'
+        assert torch.allclose(out, expected, atol=1e-5, rtol=1e-4), 'DoRA must normalize W + (alpha/rank)*BA per output, then apply magnitude'
+""",
+        },
+        {
             "name": "Gradient flow",
             "code": """
 import torch
