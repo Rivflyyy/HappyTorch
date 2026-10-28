@@ -54,6 +54,42 @@ assert torch.allclose(out1[:, :4], out2[:, :4], atol=1e-5), 'Future tokens affec
 """,
         },
         {
+            "name": "Numerical match to pre-norm causal block",
+            "code": """
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+torch.manual_seed(17)
+D, H = 24, 3
+d_k = D // H
+block = {fn}(d_model=D, num_heads=H)
+block.eval()
+linears = [m for m in block.mlp.modules() if isinstance(m, nn.Linear)]
+for S in (1, 5):
+    x = torch.randn(2, S, D) * 1.7 + 0.4
+    z = F.layer_norm(x, (D,), block.ln1.weight, block.ln1.bias, block.ln1.eps)
+    q = F.linear(z, block.W_q.weight, block.W_q.bias)
+    k = F.linear(z, block.W_k.weight, block.W_k.bias)
+    v = F.linear(z, block.W_v.weight, block.W_v.bias)
+    mask = torch.ones(S, S, dtype=torch.bool).triu(1)
+    heads = []
+    for h in range(H):
+        head_slice = slice(h * d_k, (h + 1) * d_k)
+        scores = q[..., head_slice] @ k[..., head_slice].transpose(-2, -1)
+        scores = scores / math.sqrt(d_k)
+        heads.append(scores.masked_fill(mask, float('-inf')).softmax(-1) @ v[..., head_slice])
+    attn = F.linear(torch.cat(heads, dim=-1), block.W_o.weight, block.W_o.bias)
+    residual = x + attn
+    z = F.layer_norm(residual, (D,), block.ln2.weight, block.ln2.bias, block.ln2.eps)
+    hidden = F.gelu(F.linear(z, linears[0].weight, linears[0].bias))
+    expected = residual + F.linear(hidden, linears[-1].weight, linears[-1].bias)
+    out = block(x)
+    assert out.shape == expected.shape, 'Block output shape mismatch'
+    assert torch.allclose(out, expected, atol=1e-5, rtol=1e-4), 'Values differ from pre-norm causal attention + GELU MLP with both residuals'
+""",
+        },
+        {
             "name": "Gradient flow to all parameters",
             "code": """
 import torch

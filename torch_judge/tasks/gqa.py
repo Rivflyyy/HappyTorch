@@ -33,26 +33,59 @@ assert isinstance(gqa.W_o, nn.Linear), 'W_o should be nn.Linear'
             "name": "Degenerates to MHA when kv_heads == heads",
             "code": """
 import torch
+import torch.nn as nn
 torch.manual_seed(42)
 gqa = {fn}(d_model=16, num_heads=4, num_kv_heads=4)
-out = gqa.forward(torch.randn(1, 4, 16))
-assert out.shape == (1, 4, 16)
+x = torch.randn(2, 5, 16)
+out = gqa.forward(x)
+assert out.shape == (2, 5, 16)
 assert gqa.W_k.weight.shape == (16, 16), 'Full KV when kv_heads == heads'
+# Compare values using identical projection weights, not just head dimensions.
+ref = nn.MultiheadAttention(16, 4, dropout=0.0, batch_first=True)
+with torch.no_grad():
+    projections = (gqa.W_q, gqa.W_k, gqa.W_v)
+    ref.in_proj_weight.copy_(torch.cat([p.weight for p in projections]))
+    ref.in_proj_bias.copy_(torch.cat([
+        p.bias if p.bias is not None else p.weight.new_zeros(16)
+        for p in projections
+    ]))
+    ref.out_proj.weight.copy_(gqa.W_o.weight)
+    ref.out_proj.bias.zero_()
+    if gqa.W_o.bias is not None:
+        ref.out_proj.bias.copy_(gqa.W_o.bias)
+expected, _ = ref(x, x, x, need_weights=True)
+assert torch.allclose(out, expected, atol=1e-5, rtol=1e-4), 'GQA must match MHA values when KV heads equal Q heads'
 """,
         },
         {
             "name": "KV heads are shared correctly",
             "code": """
 import torch
+import torch.nn.functional as F
+import math
 torch.manual_seed(0)
-D, H, KV = 16, 4, 2
+# Use distinct head/sequence dimensions to expose incorrect reshapes. Compute
+# each head separately so the reference does not repeat the learner's KV expand.
+D, H = 24, 6
 d_k = D // H
-gqa = {fn}(d_model=D, num_heads=H, num_kv_heads=KV)
-x = torch.randn(1, 4, D)
-k = gqa.W_k(x).view(1, 4, KV, d_k).transpose(1, 2)
-k_exp = k.repeat_interleave(H // KV, dim=1)
-assert torch.equal(k_exp[:, 0], k_exp[:, 1]), 'Heads 0,1 should share same K'
-assert not torch.equal(k_exp[:, 0], k_exp[:, 2]), 'Different groups need different K'
+for KV in (1, 2, 3):
+    gqa = {fn}(d_model=D, num_heads=H, num_kv_heads=KV)
+    x = torch.randn(2, 5, D)
+    q = F.linear(x, gqa.W_q.weight, gqa.W_q.bias)
+    k = F.linear(x, gqa.W_k.weight, gqa.W_k.bias)
+    v = F.linear(x, gqa.W_v.weight, gqa.W_v.bias)
+    heads = []
+    for h in range(H):
+        kv_head = h // (H // KV)
+        q_h = q[..., h * d_k:(h + 1) * d_k]
+        k_h = k[..., kv_head * d_k:(kv_head + 1) * d_k]
+        v_h = v[..., kv_head * d_k:(kv_head + 1) * d_k]
+        weights = (q_h @ k_h.transpose(-2, -1) / math.sqrt(d_k)).softmax(dim=-1)
+        heads.append(weights @ v_h)
+    expected = F.linear(torch.cat(heads, dim=-1), gqa.W_o.weight, gqa.W_o.bias)
+    out = gqa.forward(x)
+    assert out.shape == expected.shape, f'Wrong output shape with {KV} KV heads'
+    assert torch.allclose(out, expected, atol=1e-5, rtol=1e-4), f'Incorrect attention values or KV grouping with {KV} KV heads'
 """,
         },
         {
