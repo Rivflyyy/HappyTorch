@@ -21,36 +21,26 @@ assert out.item() in (0, 1), f'Sampled token must come from the nucleus set, got
 """,
         },
         {
-            "name": "Matches reference sampling with fixed seed",
+            "name": "Samples the specified distribution",
             "code": """
 import torch
-
-def reference_top_p(logits: torch.Tensor, p: float) -> torch.Tensor:
-    if logits.dim() == 1:
-        logits = logits.unsqueeze(0)
-    probs = torch.softmax(logits, dim=-1)
-    outputs = []
-    for row in probs:
-        sorted_probs, sorted_indices = torch.sort(row, descending=True)
-        cumulative = sorted_probs.cumsum(dim=0)
-        keep = cumulative <= p
-        keep[0] = True
-        first_exceed = torch.nonzero(cumulative > p, as_tuple=False)
-        if first_exceed.numel() > 0:
-            keep[first_exceed[0, 0]] = True
-        filtered = torch.zeros_like(row)
-        filtered[sorted_indices[keep]] = row[sorted_indices[keep]]
-        filtered = filtered / filtered.sum()
-        token = torch.multinomial(filtered, num_samples=1)
-        outputs.append(token)
-    return torch.stack(outputs).squeeze(-1)
-
-logits = torch.tensor([[2.5, 2.0, 1.0, -0.5], [0.1, 0.2, 3.0, 2.9]], dtype=torch.float32)
-torch.manual_seed(9)
-out = {fn}(logits, p=0.75)
-torch.manual_seed(9)
-expected = reference_top_p(logits, p=0.75)
-assert torch.equal(out, expected), f'Sampled tokens mismatch: {out} vs {expected}'
+torch.manual_seed(42)
+base = torch.tensor([[0.6, 0.3, 0.1], [0.1, 0.3, 0.6]]).log()
+n = 8192
+# Alternate distinct distributions to catch accidental sharing between rows.
+logits = base.repeat(n, 1)
+for p in (0.75, 1.0):
+    out = {fn}(logits, p=p)
+    assert out.shape == (2*n,), 'Return one token index per row'
+    assert out.dtype in (torch.int32, torch.int64), 'Return integer token indices'
+    assert ((out >= 0) & (out < 3)).all(), 'Token index outside vocabulary'
+    expected = torch.tensor([[2/3, 1/3, 0.0], [0.0, 1/3, 2/3]]) if p < 1 else base.softmax(-1)
+    for row in range(2):
+        counts = torch.bincount(out[row::2].long(), minlength=3)
+        assert (counts[expected[row] == 0] == 0).all(), 'Sampled a masked token'
+        frequencies = counts.float() / n
+        # More than seven binomial standard errors at the worst-case variance.
+        assert torch.allclose(frequencies, expected[row], atol=0.04, rtol=0), 'Sample frequencies do not match the specified distribution'
 """,
         },
         {
@@ -61,6 +51,27 @@ logits = torch.tensor([1.0, 5.0, 0.5], dtype=torch.float32)
 torch.manual_seed(0)
 out = {fn}(logits, p=0.01)
 assert out.item() == 1, f'At least the top token must remain available, got {out.item()}'
+""",
+        },
+        {
+            "name": 'Stops at an exact cumulative boundary',
+            "code": """
+import torch
+torch.manual_seed(0)
+logits = torch.tensor([2., 1., 1.]).log().expand(512, -1)
+out = {fn}(logits, p=0.5)
+assert out.shape == (512,) and (out == 0).all(), 'The first token already reaches p; exclude subsequent tokens'
+""",
+        },
+        {
+            "name": 'Scalar and batched token shapes',
+            "code": """
+import torch
+for shape in ((4,), (3, 4)):
+    out = {fn}(torch.randn(*shape), p=0.8)
+    assert out.shape == shape[:-1], 'Remove only the vocabulary dimension'
+    assert out.dtype in (torch.int32, torch.int64), 'Return integer token indices'
+    assert ((out >= 0) & (out < 4)).all(), 'Token index outside vocabulary'
 """,
         },
     ],

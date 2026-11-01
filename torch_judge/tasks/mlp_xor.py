@@ -48,7 +48,7 @@ assert mse < 0.01, f'MSE too high with hidden_size=8: {mse:.4f}'
 """,
         },
         {
-            "name": "No torch dependency — pure NumPy",
+            "name": "Returns NumPy predictions",
             "code": """
 import numpy as np
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])

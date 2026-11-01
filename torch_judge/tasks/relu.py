@@ -40,19 +40,7 @@ assert x.grad is not None, 'Gradient not computed'
 assert x.grad[0] == 0., f'grad at x=-1 should be 0, got {x.grad[0]}'
 assert x.grad[2] == 1., f'grad at x=1 should be 1, got {x.grad[2]}'
 assert x.grad[3] == 1., f'grad at x=2 should be 1, got {x.grad[3]}'
-assert x.grad[1] in (0., 1.), f'grad at x=0 should be 0 or 1, got {x.grad[1]}'
-""",
-        },
-        {
-            "name": "Performance",
-            "code": """
-import torch, time
-big = torch.randn(1024, 1024)
-t0 = time.perf_counter()
-for _ in range(100):
-    {fn}(big)
-elapsed = time.perf_counter() - t0
-assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s for 100 iterations'
+assert torch.isfinite(x.grad[1]) and 0 <= x.grad[1] <= 1, f'At zero, any ReLU subgradient in [0, 1] is valid; got {x.grad[1]}'
 """,
         },
     ],

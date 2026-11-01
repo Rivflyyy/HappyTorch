@@ -21,20 +21,26 @@ assert out.item() in (0, 1), f'Sampled token must be in the top-2 set, got {out.
 """,
         },
         {
-            "name": "Matches reference sampling with fixed seed",
+            "name": "Samples the specified distribution",
             "code": """
 import torch
-logits = torch.tensor([[2.0, 1.5, 0.1, -1.0], [0.2, 3.0, 2.5, 0.0]], dtype=torch.float32)
-torch.manual_seed(123)
-out = {fn}(logits, k=2)
-
-torch.manual_seed(123)
-top_values, top_indices = torch.topk(logits, k=2, dim=-1)
-masked = torch.full_like(logits, float('-inf'))
-masked.scatter_(-1, top_indices, top_values)
-probs = torch.softmax(masked, dim=-1)
-expected = torch.multinomial(probs, num_samples=1).squeeze(-1)
-assert torch.equal(out, expected), f'Sampled tokens mismatch: {out} vs {expected}'
+torch.manual_seed(42)
+base = torch.tensor([[0.6, 0.2, 0.15], [0.15, 0.2, 0.6]]).log()
+n = 8192
+# Alternate distinct distributions to catch accidental sharing between rows.
+logits = base.repeat(n, 1)
+for k in (2, 9):
+    out = {fn}(logits, k=k)
+    assert out.shape == (2*n,), 'Return one token index per row'
+    assert out.dtype in (torch.int32, torch.int64), 'Return integer token indices'
+    assert ((out >= 0) & (out < 3)).all(), 'Token index outside vocabulary'
+    expected = torch.tensor([[0.75, 0.25, 0.0], [0.0, 0.25, 0.75]]) if k == 2 else base.softmax(-1)
+    for row in range(2):
+        counts = torch.bincount(out[row::2].long(), minlength=3)
+        assert (counts[expected[row] == 0] == 0).all(), 'Sampled a masked token'
+        frequencies = counts.float() / n
+        # More than seven binomial standard errors at the worst-case variance.
+        assert torch.allclose(frequencies, expected[row], atol=0.04, rtol=0), 'Sample frequencies do not match the specified distribution'
 """,
         },
         {
@@ -45,6 +51,17 @@ logits = torch.tensor([[0.2, 1.7, 0.8], [3.0, 2.0, 1.0]])
 out = {fn}(logits, k=1)
 expected = logits.argmax(dim=-1)
 assert torch.equal(out, expected), f'k=1 should be greedy: {out} vs {expected}'
+""",
+        },
+        {
+            "name": 'Scalar and batched token shapes',
+            "code": """
+import torch
+for shape in ((4,), (3, 4)):
+    out = {fn}(torch.randn(*shape), k=2)
+    assert out.shape == shape[:-1], 'Remove only the vocabulary dimension'
+    assert out.dtype in (torch.int32, torch.int64), 'Return integer token indices'
+    assert ((out >= 0) & (out < 4)).all(), 'Token index outside vocabulary'
 """,
         },
     ],

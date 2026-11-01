@@ -5,7 +5,7 @@ TASK = {
     "title": "Sigmoid Noise Schedule",
     "difficulty": "Medium",
     "function_name": "sigmoid_schedule",
-    "hint": "Sigmoid schedule creates smooth transition between signal and noise. σ(t) = exp(σ_min + (σ_max - σ_min) * sigmoid(γ * (t - 0.5))). Or for β schedule: β(t) = sigmoid(...) mapped to [β_start, β_end].",
+    "hint": 'Use beta(t) = beta_start + (beta_end - beta_start) * sigmoid(gamma * (t - 0.5)). Gamma controls steepness; t=0.5 gives the midpoint of the beta bounds.',
     "tests": [
         {
             "name": "Output shape",
@@ -37,16 +37,14 @@ assert (diffs >= -1e-6).all(), 'Betas should be monotonically non-decreasing'
 """,
         },
         {
-            "name": "Smooth transition",
+            "name": "Numerical sigmoid schedule",
             "code": """
 import torch
-t = torch.linspace(0, 1, 100)
-betas = {fn}(t, beta_start=0.0001, beta_end=0.02)
-# Sigmoid should give smooth S-curve, not linear
-mid = betas[49]  # t=0.5
-linear_mid = 0.5 * (0.0001 + 0.02)
-# Sigmoid mid should be close to linear mid for standard sigmoid
-assert abs(mid - linear_mid) < 0.005, f'Mid point should be smooth transition'
+t = torch.tensor([0., 0.25, 0.5, 0.75, 1.])
+for gamma in (2.0, 10.0):
+    expected = 0.001 + 0.039 * torch.sigmoid(gamma * (t - 0.5))
+    out = {fn}(t, beta_start=0.001, beta_end=0.04, gamma=gamma)
+    assert torch.allclose(out, expected, atol=1e-7), 'Use the stated sigmoid beta schedule and honor gamma'
 """,
         },
         {

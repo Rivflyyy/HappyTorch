@@ -48,7 +48,7 @@ assert strong < weak, f'Stronger preferred-vs-rejected gap should reduce loss: {
 """,
         },
         {
-            "name": "Larger beta sharpens the penalty",
+            "name": "Larger beta reduces loss for a favorable preference gap",
             "code": """
 import torch
 low_beta = {fn}(

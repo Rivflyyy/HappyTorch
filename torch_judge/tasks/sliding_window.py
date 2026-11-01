@@ -70,5 +70,18 @@ V = torch.randn(2, 4, 8, requires_grad=True)
 assert Q.grad is not None, 'Q.grad is None'
 """,
         },
+        {
+            "name": 'Numerical masked attention with distinct value width',
+            "code": """
+import torch, math
+torch.manual_seed(17)
+Q, K, V = torch.randn(2, 7, 4), torch.randn(2, 7, 4), torch.randn(2, 7, 3)
+scores = Q @ K.transpose(-1, -2) / math.sqrt(4)
+scores = scores.masked_fill((torch.arange(7)[None, :] - torch.arange(7)[:, None]).abs() > 2, float('-inf'))
+expected = scores.softmax(-1) @ V
+out = {fn}(Q, K, V, window_size=2)
+assert out.shape == expected.shape and torch.allclose(out, expected, atol=1e-5), 'Wrong masked attention values'
+""",
+        },
     ],
 }

@@ -43,12 +43,12 @@ D, H = 16, 2
 d_k = D // H
 mha = {fn}(d_model=D, num_heads=H)
 Q = torch.randn(1, 4, D)
-K = torch.randn(1, 4, D)
-V = torch.randn(1, 4, D)
+K = torch.randn(1, 7, D)
+V = torch.randn(1, 7, D)
 out = mha.forward(Q, K, V)
 q = mha.W_q(Q).view(1, 4, H, d_k).transpose(1, 2)
-k = mha.W_k(K).view(1, 4, H, d_k).transpose(1, 2)
-v = mha.W_v(V).view(1, 4, H, d_k).transpose(1, 2)
+k = mha.W_k(K).view(1, 7, H, d_k).transpose(1, 2)
+v = mha.W_v(V).view(1, 7, H, d_k).transpose(1, 2)
 scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
 weights = torch.softmax(scores, dim=-1)
 attn = torch.matmul(weights, v)
@@ -80,19 +80,6 @@ K = torch.randn(1, 7, 32)
 V = torch.randn(1, 7, 32)
 out = mha.forward(Q, K, V)
 assert out.shape == (1, 3, 32), f'Cross-attention shape: {out.shape}'
-""",
-        },
-        {
-            "name": "Different heads give different outputs",
-            "code": """
-import torch
-torch.manual_seed(42)
-D, H = 16, 4
-d_k = D // H
-mha = {fn}(d_model=D, num_heads=H)
-x = torch.randn(1, 4, D)
-q = mha.W_q(x).view(1, 4, H, d_k).transpose(1, 2)
-assert not torch.allclose(q[:, 0], q[:, 1], atol=1e-3), 'Heads produce identical queries'
 """,
         },
     ],

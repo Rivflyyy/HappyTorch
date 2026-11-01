@@ -5,7 +5,7 @@ TASK = {
     "title": "AdaLN (Adaptive Layer Normalization)",
     "difficulty": "Hard",
     "function_name": "AdaLN",
-    "hint": "AdaLN modulates LayerNorm using conditioning: γ, β = f(cond). Use nn.SiLU + nn.Linear to predict scale and shift from condition. Output: γ * normalize(x) + β. γ typically initialized to 1, β to 0.",
+    "hint": 'Predict scale and shift from cond using separate projections or a fused projection and chunk. Output: gamma(cond) * LayerNorm(x) + beta(cond), with population variance and eps=1e-5. Internal module names are your choice.',
     "tests": [
         {
             "name": "Output shape",
@@ -19,42 +19,29 @@ assert out.shape == (2, 10, 64), f'Shape mismatch: {out.shape}'
 """,
         },
         {
-            "name": "Has modulation layers",
-            "code": """
-import torch, torch.nn as nn
-adaln = {fn}(hidden_dim=32, cond_dim=64)
-assert hasattr(adaln, 'norm'), 'Need self.norm = nn.LayerNorm'
-assert hasattr(adaln, 'cond_mlp'), 'Need self.cond_mlp for scale/shift prediction'
-assert isinstance(adaln.norm, nn.LayerNorm), 'norm should be nn.LayerNorm'
-""",
-        },
-        {
             "name": "Produces per-sample modulation",
             "code": """
-import torch
-adaln = {fn}(hidden_dim=32, cond_dim=64)
-x = torch.randn(2, 10, 32)
-cond1 = torch.randn(2, 64)
-cond2 = torch.randn(2, 64)
-out1 = adaln(x, cond1)
-out2 = adaln(x, cond2)
-# Same x, different cond should give different outputs
-assert not torch.allclose(out1, out2, atol=1e-3), 'Different conditions should give different outputs'
-""",
-        },
-        {
-            "name": "Condition-independent when gamma=1, beta=0",
-            "code": """
-import torch
-adaln = {fn}(hidden_dim=32, cond_dim=64)
-x = torch.randn(1, 4, 32)
-# Initialize to identity modulation
+import torch, torch.nn as nn
+torch.manual_seed(21)
+layer = {fn}(hidden_dim=32, cond_dim=64)
+assert isinstance(layer, nn.Module), 'Implement an nn.Module with registered trainable conditioning parameters'
+params = [p for p in layer.parameters() if p.requires_grad]
+assert params, 'Conditioning must have trainable parameters'
 with torch.no_grad():
-    for p in adaln.cond_mlp.parameters():
-        p.zero_()
-out = adaln(x, torch.randn(1, 64))
-# With zero MLP, should approximate standard LayerNorm (gamma≈0 -> 1 after init)
-assert out.shape == x.shape, 'Output shape should match input'
+    for p in params:
+        p.normal_(0, 0.2)
+x = torch.randn(2, 5, 32)
+cond = torch.randn(2, 64)
+changed = cond.clone()
+# Use a nonuniform replacement: normalization may validly remove uniform offsets.
+changed[1] = torch.randn_like(changed[1]) * 2
+out = layer(x, cond)
+out_changed = layer(x, changed)
+assert torch.allclose(out[0], out_changed[0], atol=1e-5), "One sample must not use another sample's condition"
+assert not torch.allclose(out[1], out_changed[1], atol=1e-5), 'Condition must affect its own sample'
+for b in range(2):
+    single = layer(x[b:b+1], cond[b:b+1])
+    assert torch.allclose(out[b:b+1], single, atol=1e-5), 'Process each batch element independently'
 """,
         },
         {
@@ -68,22 +55,31 @@ out = adaln(x, cond)
 out.sum().backward()
 assert x.grad is not None, 'x.grad is None'
 assert cond.grad is not None, 'cond.grad is None'
+assert any(p.grad is not None for p in adaln.parameters() if p.requires_grad), 'Conditioning parameters must receive gradients'
 """,
         },
         {
-            "name": "Modulation affects normalized output",
+            "name": 'Featurewise affine formula and token independence',
             "code": """
 import torch
-adaln = {fn}(hidden_dim=32, cond_dim=64)
-x = torch.randn(1, 4, 32)
-cond = torch.randn(1, 64)
-out = adaln(x, cond)
-# Output should be normalized (zero mean, unit variance per token) before modulation
-# After modulation, it may have different statistics
-assert out.shape == x.shape
-# Check that modulation actually happened (not just LayerNorm)
-ref_norm = torch.nn.functional.layer_norm(x, [32])
-assert not torch.allclose(out, ref_norm, atol=1e-3), 'AdaLN should differ from plain LayerNorm'
+torch.manual_seed(23)
+layer = {fn}(hidden_dim=32, cond_dim=64)
+with torch.no_grad():
+    for p in layer.parameters():
+        if p.requires_grad:
+            p.normal_(0, 0.2)
+x = torch.randn(2, 5, 32) * 2 + 3
+cond = torch.randn(2, 64)
+beta = layer(torch.zeros_like(x), cond)
+probe = torch.tensor([-1., 1.]).repeat(16).expand_as(x)
+gamma = (layer(probe, cond) - beta) / (torch.nn.functional.layer_norm(probe, (32,), eps=1e-5))
+expected = gamma * (torch.nn.functional.layer_norm(x, (32,), eps=1e-5)) + beta
+out = layer(x, cond)
+assert torch.allclose(out, expected, atol=2e-5, rtol=1e-4), 'Apply scale and shift independently to each feature'
+assert torch.allclose(beta, beta[:, :1].expand_as(beta), atol=1e-5), 'Shift must be shared across tokens'
+assert torch.allclose(gamma, gamma[:, :1].expand_as(gamma), atol=1e-5), 'Scale must be shared across tokens'
+for t in range(x.shape[1]):
+    assert torch.allclose(out[:, t:t+1], layer(x[:, t:t+1], cond), atol=2e-5), 'Tokens must not interact in this layer'
 """,
         },
     ],

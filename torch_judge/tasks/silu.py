@@ -60,7 +60,7 @@ assert neg_out.min() < -0.1, 'SiLU should have minimum < -0.1 for negative input
 import torch
 x = torch.linspace(-100, -1, 100)
 out = {fn}(x)
-# As x → -∞, SiLU(x) → -x * e^(-x) → 0 (approaches 0 from below)
+# As x → -∞, SiLU(x) ≈ x * e^x → 0 (approaches 0 from below)
 assert out.min() > -1, f'SiLU should be bounded below > -1, got {out.min()}'
 """,
         },

@@ -41,5 +41,15 @@ expected = torch.softmax(x, dim=-1)
 assert torch.allclose(out, expected, atol=1e-5), 'Values differ on large input'
 """,
         },
+        {
+            "name": 'Non-last dimension',
+            "code": """
+import torch
+x = torch.randn(2, 3, 5)
+for dim in (0, 1, -2):
+    out = {fn}(x, dim=dim)
+    assert torch.allclose(out, x.softmax(dim), atol=1e-6), 'Softmax must honor dim'
+""",
+        },
     ],
 }

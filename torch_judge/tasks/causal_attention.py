@@ -56,5 +56,18 @@ out.sum().backward()
 assert Q.grad is not None and K.grad is not None and V.grad is not None, 'Missing gradients'
 """,
         },
+        {
+            "name": 'Numerical masked attention with distinct value width',
+            "code": """
+import torch, math
+torch.manual_seed(17)
+Q, K, V = torch.randn(2, 7, 4), torch.randn(2, 7, 4), torch.randn(2, 7, 3)
+scores = Q @ K.transpose(-1, -2) / math.sqrt(4)
+scores = scores.masked_fill(torch.arange(7)[None, :] > torch.arange(7)[:, None], float('-inf'))
+expected = scores.softmax(-1) @ V
+out = {fn}(Q, K, V)
+assert out.shape == expected.shape and torch.allclose(out, expected, atol=1e-5), 'Wrong masked attention values'
+""",
+        },
     ],
 }

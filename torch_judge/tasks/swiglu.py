@@ -5,7 +5,7 @@ TASK = {
     "title": "SwiGLU Activation",
     "difficulty": "Hard",
     "function_name": "SwiGLU",
-    "hint": "SwiGLU(x) = Swish(gate) * up where gate and up are projections. Swish(x) = x * sigmoid(x). Use nn.Linear for gate_proj and up_proj. d_out = d_in // 2 or configurable.",
+    "hint": "SwiGLU(x) = Swish(gate) * up where gate and up are projections. Swish(x) = x * sigmoid(x). Use nn.Linear for gate_proj and up_proj. Both projections map d_in to the constructor's d_out.",
     "tests": [
         {
             "name": "Output shape",

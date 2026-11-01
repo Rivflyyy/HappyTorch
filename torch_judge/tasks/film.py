@@ -19,37 +19,29 @@ assert out.shape == (2, 10, 64), f'Shape mismatch: {out.shape}'
 """,
         },
         {
-            "name": "Has modulation parameters",
-            "code": """
-import torch, torch.nn as nn
-film = {fn}(feature_dim=32, cond_dim=16)
-assert hasattr(film, 'gamma_fc') or hasattr(film, 'beta_fc'), 'Need gamma_fc and beta_fc for modulation'
-""",
-        },
-        {
-            "name": "Applies affine modulation",
-            "code": """
-import torch
-film = {fn}(feature_dim=32, cond_dim=16)
-x = torch.randn(1, 4, 32)
-cond = torch.randn(1, 16)
-out = film(x, cond)
-# FiLM should apply gamma * x + beta
-# Without proper implementation, this test verifies the structure
-assert out.shape == x.shape, 'Output shape should match input'
-""",
-        },
-        {
             "name": "Condition affects output",
             "code": """
-import torch
-film = {fn}(feature_dim=32, cond_dim=16)
-x = torch.randn(1, 4, 32)
-cond1 = torch.zeros(1, 16)
-cond2 = torch.ones(1, 16)
-out1 = film(x, cond1)
-out2 = film(x, cond2)
-assert not torch.allclose(out1, out2, atol=1e-3), 'Different conditions should give different outputs'
+import torch, torch.nn as nn
+torch.manual_seed(21)
+layer = {fn}(feature_dim=32, cond_dim=16)
+assert isinstance(layer, nn.Module), 'Implement an nn.Module with registered trainable conditioning parameters'
+params = [p for p in layer.parameters() if p.requires_grad]
+assert params, 'Conditioning must have trainable parameters'
+with torch.no_grad():
+    for p in params:
+        p.normal_(0, 0.2)
+x = torch.randn(2, 5, 32)
+cond = torch.randn(2, 16)
+changed = cond.clone()
+# Use a nonuniform replacement: normalization may validly remove uniform offsets.
+changed[1] = torch.randn_like(changed[1]) * 2
+out = layer(x, cond)
+out_changed = layer(x, changed)
+assert torch.allclose(out[0], out_changed[0], atol=1e-5), "One sample must not use another sample's condition"
+assert not torch.allclose(out[1], out_changed[1], atol=1e-5), 'Condition must affect its own sample'
+for b in range(2):
+    single = layer(x[b:b+1], cond[b:b+1])
+    assert torch.allclose(out[b:b+1], single, atol=1e-5), 'Process each batch element independently'
 """,
         },
         {
@@ -63,17 +55,31 @@ out = film(x, cond)
 out.sum().backward()
 assert x.grad is not None, 'x.grad is None'
 assert cond.grad is not None, 'cond.grad is None'
+assert any(p.grad is not None for p in film.parameters() if p.requires_grad), 'Conditioning parameters must receive gradients'
 """,
         },
         {
-            "name": "Identity when gamma=1, beta=0",
+            "name": 'Featurewise affine formula and token independence',
             "code": """
 import torch
-film = {fn}(feature_dim=32, cond_dim=16)
-x = torch.randn(1, 4, 32)
-# If gamma=1 and beta=0, output should equal normalized input
-# This tests that the modulation structure is correct
-assert hasattr(film, 'gamma_fc') or hasattr(film, 'fc_gamma') or hasattr(film, 'mlp'), 'FiLM needs modulation layers'
+torch.manual_seed(23)
+layer = {fn}(feature_dim=32, cond_dim=16)
+with torch.no_grad():
+    for p in layer.parameters():
+        if p.requires_grad:
+            p.normal_(0, 0.2)
+x = torch.randn(2, 5, 32) * 2 + 3
+cond = torch.randn(2, 16)
+beta = layer(torch.zeros_like(x), cond)
+probe = torch.ones_like(x)
+gamma = (layer(probe, cond) - beta) / (probe)
+expected = gamma * (x) + beta
+out = layer(x, cond)
+assert torch.allclose(out, expected, atol=2e-5, rtol=1e-4), 'Apply scale and shift independently to each feature'
+assert torch.allclose(beta, beta[:, :1].expand_as(beta), atol=1e-5), 'Shift must be shared across tokens'
+assert torch.allclose(gamma, gamma[:, :1].expand_as(gamma), atol=1e-5), 'Scale must be shared across tokens'
+for t in range(x.shape[1]):
+    assert torch.allclose(out[:, t:t+1], layer(x[:, t:t+1], cond), atol=2e-5), 'Tokens must not interact in this layer'
 """,
         },
     ],

@@ -37,18 +37,17 @@ assert Q.grad is not None and K.grad is not None and V.grad is not None, 'Missin
 """,
         },
         {
-            "name": "Runs fast on long sequences (linear complexity)",
+            "name": 'Numerical normalized feature-map attention',
             "code": """
-import torch, time
-torch.manual_seed(0)
-Q = torch.randn(1, 2048, 64)
-K = torch.randn(1, 2048, 64)
-V = torch.randn(1, 2048, 64)
-t0 = time.perf_counter()
-for _ in range(10):
-    {fn}(Q, K, V)
-elapsed = time.perf_counter() - t0
-assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s — should be O(S*D^2) not O(S^2*D)'
+import torch
+import torch.nn.functional as F
+torch.manual_seed(17)
+Q, K, V = torch.randn(2, 7, 4), torch.randn(2, 7, 4), torch.randn(2, 7, 3)
+# A small quadratic oracle is independent of the efficient associativity trick.
+weights = (F.elu(Q) + 1) @ (F.elu(K) + 1).transpose(-1, -2)
+expected = (weights @ V) / (weights.sum(-1, keepdim=True) + 1e-6)
+out = {fn}(Q, K, V)
+assert out.shape == expected.shape and torch.allclose(out, expected, atol=1e-5), 'Wrong normalized feature-map attention'
 """,
         },
     ],

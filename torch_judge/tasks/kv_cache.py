@@ -12,9 +12,8 @@ TASK = {
             "code": """
 import torch
 cache = {fn}(num_heads=8, head_dim=64, max_seq_len=256, batch_size=2)
-assert hasattr(cache, 'k_cache'), 'Need self.k_cache'
-assert hasattr(cache, 'v_cache'), 'Need self.v_cache'
-# Cache should be initialized (possibly zeros or empty placeholder)
+k, v = cache.get()
+assert k.shape == v.shape == (2, 8, 0, 64), 'A new cache must expose zero stored tokens via get()'
 """,
         },
         {
@@ -60,6 +59,8 @@ cache.append(k2, v2)
 k, v = cache.get()
 assert torch.allclose(k[:, :, :2], k1), 'First K values incorrect'
 assert torch.allclose(k[:, :, 2:], k2), 'Second K values incorrect'
+assert torch.allclose(v[:, :, :2], v1), 'First V values incorrect'
+assert torch.allclose(v[:, :, 2:], v2), 'Second V values incorrect'
 """,
         },
         {
@@ -73,6 +74,10 @@ cache.append(k, v)
 cache.clear()
 # After clear, cache should be empty (seq_len = 0 or get returns empty)
 assert cache.seq_len == 0, 'seq_len should be 0 after clear'
+assert cache.get()[0].shape == cache.get()[1].shape == (1, 4, 0, 16), 'get() must be empty after clear'
+new_k, new_v = torch.randn(1, 4, 2, 16), torch.randn(1, 4, 2, 16)
+cache.append(new_k, new_v)
+assert torch.equal(cache.get()[0], new_k) and torch.equal(cache.get()[1], new_v), 'Reusing a cleared cache must not expose old tokens'
 """,
         },
         {

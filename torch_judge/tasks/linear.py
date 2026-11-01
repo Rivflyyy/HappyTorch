@@ -37,9 +37,9 @@ import torch
 layer = {fn}(8, 4)
 x = torch.randn(2, 8)
 y = layer.forward(x)
-y.sum().backward()
-assert layer.weight.grad is not None, 'weight.grad is None'
-assert layer.bias.grad is not None, 'bias.grad is None'
+dw, db = torch.autograd.grad(y.sum(), (layer.weight, layer.bias))
+assert torch.allclose(dw, x.sum(0).expand_as(dw)), 'Incorrect weight gradient'
+assert torch.allclose(db, torch.full_like(db, x.shape[0])), 'Incorrect bias gradient'
 """,
         },
     ],

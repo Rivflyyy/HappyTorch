@@ -5,7 +5,7 @@ TASK = {
     "title": "GELU Activation",
     "difficulty": "Medium",
     "function_name": "gelu",
-    "hint": "GELU(x) = x * Φ(x) where Φ is Gaussian CDF. Use erf: Φ(x) = 0.5 * (1 + erf(x / sqrt(2))). Fast approximation: 0.5 * x * (1 + tanh(sqrt(2/π) * (x + 0.044715 * x³))).",
+    "hint": 'Implement exact GELU: x * Phi(x), with Phi(x) = 0.5 * (1 + erf(x / sqrt(2))). The tanh approximation is a different function and is not the target of this exercise.',
     "tests": [
         {
             "name": "Basic values",
@@ -62,7 +62,7 @@ x = torch.linspace(-0.1, 0.1, 20)
 out = {fn}(x)
 # GELU should be smooth (no sharp edges like ReLU)
 diffs = out[1:] - out[:-1]
-assert (diffs >= 0).all(), 'GELU should be monotonically increasing'
+assert (diffs >= 0).all(), 'GELU should be increasing near zero'
 """,
         },
     ],

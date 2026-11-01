@@ -7,7 +7,7 @@ TASK = {
     "function_name": "grpo_loss",
     "hint": (
         "First normalize rewards within each group to get group-relative advantages: "
-        "(r - mean(group)) / (std(group) + eps). Then reuse the PPO clipped objective "
+        "(r - mean(group)) / (std(group, unbiased=False) + 1e-8). Then reuse the PPO clipped objective "
         "with ratio = exp(new_log_probs - old_log_probs)."
     ),
     "tests": [

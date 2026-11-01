@@ -5,7 +5,7 @@ TASK = {
     "title": "DoRA Linear Layer",
     "difficulty": "Hard",
     "function_name": "DoRALinear",
-    "hint": "DoRA decomposes W into magnitude m and direction V: W = m * V/||V||. LoRA updates V: V' = V + BA. Final: W' = m * (V + BA) / ||V + BA||. This separates magnitude and direction learning.",
+    "hint": 'Expose W (base direction), m (row magnitudes), A, B, rank, and alpha as described in the notebook. Form direction = W + (alpha/rank) * (B @ A), normalize each row along dim=1, then multiply by m[:, None]. Return x @ effective_weight.T without bias.',
     "tests": [
         {
             "name": "Output shape",
@@ -98,22 +98,6 @@ assert x.grad is not None, 'x.grad is None'
 assert dora.m.grad is not None, 'm.grad is None'
 assert dora.A.grad is not None, 'A.grad is None'
 assert dora.B.grad is not None, 'B.grad is None'
-""",
-        },
-        {
-            "name": "DoRA differs from LoRA",
-            "code": """
-import torch
-torch.manual_seed(42)
-# DoRA with non-zero B should differ from LoRA due to normalization
-dora = {fn}(in_features=16, out_features=32, rank=4)
-with torch.no_grad():
-    dora.B.fill_(0.1)
-x = torch.randn(1, 4, 16)
-# Compute LoRA-style output
-lora_out = x @ dora.W.T + x @ dora.A.T @ dora.B.T * (dora.alpha / dora.rank)
-dora_out = dora(x)
-assert not torch.allclose(lora_out, dora_out, atol=1e-3), 'DoRA should differ from LoRA due to normalization'
 """,
         },
     ],

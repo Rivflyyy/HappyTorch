@@ -34,7 +34,7 @@ assert lora.B.shape == (64, 4), f'B shape: {lora.B.shape}, expected (64, 4)'
             "code": """
 import torch
 lora = {fn}(in_features=32, out_features=64, rank=4)
-# B should be zero-initialized so LoRA starts as identity (W' = W)
+# B should be zero-initialized so the base layer is unchanged (W' = W)
 assert torch.allclose(lora.B, torch.zeros_like(lora.B)), 'B should be zero-initialized'
 """,
         },
@@ -70,20 +70,20 @@ assert lora.B.grad is not None, 'B.grad is None'
 """,
         },
         {
-            "name": "Rank controls parameter efficiency",
+            "name": "Registered low-rank parameters",
             "code": """
-import torch, torch.nn as nn
-lora = {fn}(in_features=64, out_features=128, rank=8)
-lora_params = sum(p.numel() for p in lora.parameters())
-# Base weight: W (128×64) = 8192 params
-# LoRA adds: A (8×64) + B (128×8) = 512 + 1024 = 1536 extra params
-base_w = 64 * 128
-extra = 8 * 64 + 128 * 8
-assert lora_params >= base_w + extra, f'Expected at least {base_w + extra} params (base W + LoRA A,B), got {lora_params}'
+import torch.nn as nn
+layer = {fn}(in_features=64, out_features=128, rank=8)
+assert layer.W.shape == (128, 64), 'W must use (out_features, in_features) layout'
+registered = {id(p) for p in layer.parameters()}
+for name in ('A', 'B'):
+    p = getattr(layer, name)
+    assert isinstance(p, nn.Parameter) and p.requires_grad and id(p) in registered, 'Register trainable low-rank parameters'
+assert layer.A.numel() + layer.B.numel() == 8 * (64 + 128), 'Low-rank parameter count should scale with rank'
 """,
         },
         {
-            "name": "Zero rank means identity LoRA",
+            "name": "Zero rank leaves the base layer unchanged",
             "code": """
 import torch
 lora = {fn}(in_features=32, out_features=64, rank=0)

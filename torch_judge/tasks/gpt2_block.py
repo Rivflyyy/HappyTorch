@@ -98,8 +98,8 @@ block = {fn}(d_model=32, num_heads=4)
 x = torch.randn(1, 4, 32, requires_grad=True)
 block(x).sum().backward()
 assert x.grad is not None, 'x.grad is None'
-n_total = sum(1 for p in block.parameters())
-n_grad = sum(1 for p in block.parameters() if p.grad is not None)
+n_total = sum(1 for p in block.parameters() if p.requires_grad)
+n_grad = sum(1 for p in block.parameters() if p.requires_grad and p.grad is not None)
 assert n_grad == n_total, f'Only {n_grad}/{n_total} params got gradients'
 """,
         },

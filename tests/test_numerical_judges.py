@@ -10,14 +10,16 @@ import json
 from pathlib import Path
 import unittest
 
-from torch_judge.tasks import get_task
+import torch
+
+from torch_judge.tasks import TASKS, get_task
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# File names and task IDs differ only for the multihead-attention exercise.
 SOLUTIONS = {
-    "gqa": "10_gqa_solution.ipynb",
-    "gpt2_block": "13_gpt2_block_solution.ipynb",
-    "dora": "18_dora_solution.ipynb",
+    ("mha" if path.stem[3:-9] == "multihead_attention" else path.stem[3:-9]): path.name
+    for path in sorted((ROOT / "solutions").glob("*_solution.ipynb"))
 }
 
 
@@ -61,7 +63,17 @@ def judge_failures(task_id, implementation):
 
 
 class NumericalJudgeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.old_threads = torch.get_num_threads()
+        torch.set_num_threads(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        torch.set_num_threads(cls.old_threads)
+
     def test_published_solutions_are_accepted(self):
+        self.assertEqual(set(SOLUTIONS), set(TASKS), "Every task needs a reference solution")
         for task_id in SOLUTIONS:
             with self.subTest(task=task_id):
                 self.assertEqual(judge_failures(task_id, load_solution(task_id)), [])
